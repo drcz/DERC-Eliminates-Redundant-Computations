@@ -1,0 +1,1 @@
+[ (apd (xs ys) (if (= xs ()) ys (cons (car xs) (apd (cdr xs) ys)))) ]

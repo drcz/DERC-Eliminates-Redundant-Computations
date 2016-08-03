@@ -1,0 +1,16 @@
+[
+ (run (n) (map-factor (nums n)))
+
+ (nums (n) (if (= n 0) () (cons n (nums (- n 1)))))
+ 
+ (map-factor (xs)
+	     (if (= xs ())
+		 ()
+		 (cons (factorial (car xs))
+		       (map-factor (cdr xs)))))
+ 
+ (factorial (n)
+	    (if (= n 0)
+		1
+		(* n (factorial (- n 1)))))
+]
