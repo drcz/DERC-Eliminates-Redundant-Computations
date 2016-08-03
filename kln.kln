@@ -1,0 +1,110 @@
+[
+  (test (names vals) (eval '((^ (x) (* x x)) (+ 2 y)) names vals ())) ;; !
+
+  (member? (x xs)
+	   (cond ((= xs ()) ())
+		 ((= (car xs) x) T)
+		 (T (member? x (cdr xs)))))
+
+  (variable? (expr)
+	     (cond ((num? expr) ())
+		   ((atom? expr) T)
+		   (T ())))
+
+  (quote-form? (expr)
+	       (cond ((atom? expr) ())
+		     ((= (car expr) 'quote) T)
+		     (T ())))
+
+  (if-form? (expr)
+	    (cond ((atom? expr) ())
+		  ((= (car expr) 'if) T)
+		  (T ())))
+
+  (lambda-form? (expr)
+		(cond ((atom? expr) ())
+		      ((= (car expr) '^ ) T)
+		      (T ())))
+
+  (primop? (expr)
+	   (member? expr '(car cdr cons = + - * < atom? num?)))
+
+  (self-evaluating? (expr)
+		    (cond ((= expr ()) T)
+			  ((= expr T) T)
+			  ((num? expr) T)
+			  ((primop? expr) T)
+			  ((lambda-form? expr) T)
+			  (T ())))
+
+  (quote-expr (expr) (car (cdr expr)))
+
+  (if-premise (expr) (car (cdr expr)))
+  (if-conclusion (expr) (car (cdr (cdr expr))))
+  (if-alternative (expr) (car (cdr (cdr (cdr expr)))))
+
+  (lambda-args (expr) (car (cdr expr)))
+  (lambda-body (expr) (car (cdr (cdr expr))))
+
+  (operator (app) (car app))
+  (operands (app) (cdr app))
+
+  (assoc (sym alist)
+	 (cond ((= alist ()) ())
+	       ((= (car (car alist)) sym) (cdr (car alist)))
+	       (T (assoc sym (cdr alist)))))
+
+  (ev-sym-tmp (sym names vals defs)
+	      (ev-sym-tmp0 (assoc sym defs) sym names vals))
+  
+  (ev-sym-tmp0 (def sym names vals)
+	       (if def
+		   def
+		   (lookup sym names vals)))
+
+  (lookup (sym names vals)
+	  (cond ((= names ()) ())
+		((= (car names) sym) (car vals))
+		(T (lookup sym (cdr names) (cdr vals)))))
+
+;;; expr, names and defs are always static, hooray...
+  (eval (expr names values defs)
+	(cond ((self-evaluating? expr) expr)
+	      ((variable? expr) (ev-sym-tmp expr names values defs))
+	      ((quote-form? expr) (quote-expr expr))
+	      ((if-form? expr) (if (eval (if-premise expr) names values defs)
+				   (eval (if-conclusion expr) names values defs)
+				   (eval (if-alternative expr) names values defs)))
+	      (T ;; application!
+	       (apply (eval (operator expr) names values defs)
+		      (evlis (operands expr) names values defs)
+		      defs))))
+
+;;; exprs, names and defs are always static, hooray...
+  (evlis (exprs names values defs)
+	 (if (= exprs ())
+	     ()
+	     (cons (eval (car exprs) names values defs)
+		   (evlis (cdr exprs) names values defs))))
+
+  (apply (rator rands defs)
+	 (if (primop? rator)
+	     (apply-prim rator rands)
+	     (eval (lambda-body rator)
+		   (lambda-args rator)
+		   rands
+		   defs)))
+
+  (apply-prim (prim rands)
+	      (cond ((= prim 'car) (car (car rands)))
+		    ((= prim 'cdr) (cdr (car rands)))
+		    ((= prim 'cons) (cons (car rands) (car (cdr rands))))
+		    ((= prim '+) (+ (car rands) (car (cdr rands))))
+		    ((= prim '-) (- (car rands) (car (cdr rands))))
+		    ((= prim '*) (* (car rands) (car (cdr rands))))
+		    ((= prim '<) (< (car rands) (car (cdr rands))))	   
+		    ((= prim '=) (= (car rands) (car (cdr rands))))
+		    ((= prim 'atom?) (atom? (car rands)))
+		    ((= prim 'num?) (num? (car rands)))	   
+		    #;... ))
+]

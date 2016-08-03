@@ -5,11 +5,16 @@
 (include "peval-memory-and-stuff.scm")
 (include "code-massage.scm")
 
-(define (error msg)
+(define (error msg) ;; for dbg...
+  (display "ERROR! ")
   (display msg)
   (newline)
+  (display "residual program so far:")
+  (newline)
   (pretty-print (get-residual-program))
+  (newline)
   (quit))
+
 
 ;; some peval-specific terms:
 (define (static? expr)
@@ -33,12 +38,11 @@
 
 
 (define (plookup var env)
-  "emit code -- either producing a constant, or looking up a [dynamic] variable"
+  "emit code -- either producing a constant, or looking up a variable"
   (let ((val (lookup var env)))
     (if val (value->static val)	var)))
 
-
-;; ok, let's go:
+;; ok, let's go: ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (pevaluate expr penv prog)
 ;(pretty-print `(pevl ,expr ,penv))
@@ -106,8 +110,7 @@
      (error `(malformed primitive application ,expr (,rator . ,rands)))]))
 
 
-
-;; now the darkest, and most mystical part of pevaluator -- residualizing calls.
+;; now the darkest, and most mystical part of pevaluator -- residualizing calls:
 (define (peval-function fname rands prog expr)
 ;  (pretty-print `(pvl-fn ,fname ,rands))
   (let* ([def (assoc fname prog)]
@@ -124,7 +127,7 @@
 
 
 (define (residualize-call fname penv dynamic prog)
-
+  
   (define (generalize penv1 penv2)
     "find new penv on which both given match (``a most specific generalization'')"
     [assert (every (lambda (x) (member? x (map car penv2))) (map car penv1))]
@@ -133,7 +136,7 @@
 		       `(,var . ,val)))
 		penv1))
   
-  (define ((is? x) y) (equal? x y)) ;; told ya, it's magic!
+  (define ((is? x) y) (equal? x y)) ;; told ya, it's magic.
   
 ;[pretty-print `(r-c ,fname ,penv try?= ,(try-to-recall fname penv))]
   (match (try-to-recall fname penv)    
@@ -188,20 +191,11 @@
      (inline-linear-calls
       (get-residual-program)))))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;
-#;(let ((p1 '[(mul (x y) (* x y))]))
-  (forget-everything!)
-  (residualize-new-call 'mul '([x . 3]) '([y . (+ z z)]) p1)
-  (pretty-print (get-residual-program)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; "main"
 
 (let ([prog (read)]
       [names (read)]
       [vals (read)])
   [assert (program? prog)]
   (pretty-print (specialize prog names vals)))
-
-  

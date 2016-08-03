@@ -55,7 +55,7 @@
   
   (and (list? x)
        (= (length x) 3)
-       (symbol? (first x))
+       (fname? (first x))
        (varlist? (second x))
        (expression? (third x))
        (every (lambda (var) (member? var (second x)))
