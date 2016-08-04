@@ -27,10 +27,9 @@
 ;;; the famous ``russian whistle'' :)
 (define (whistle? e1 e2)
   "e1 is [homeomorphically] embedded in e2"
-;  (pretty-print `(<? ,e1 ,e2))
   (match `(,e1 ,e2)
     [(e e) #t]
-    [(() e) (null? e)] ;;; !!!!!!!!
+    [(() e) (null? e)] ;;; !!!
 #;    [((? number? n1) (? number? n2)) #t]
 #;    [((? number? n1) (? number? n2))
      (or (< 0 n1 n2)
@@ -54,17 +53,21 @@
   (and (eq? name1 name2)
        (= #;<= (length static1) (length static2))
        (every (lambda ((var . val))
-		;;;;;; VEEEEEEERY DIRTY HACKS....
-		(and (not (and (or (and (eq? name1 'eval)
+		;;;;;; a dirty* hack to manage specialization of kln:
+		(and #;(not (and (or (and (eq? name1 'eval)
 					(eq? var 'expr))
 				   (and (eq? name1 'evlis)
 					(eq? var 'exprs))
 				   (and (eq? name1 'apply)
 					(eq? var 'rator)))
 			       (not (eq? val (lookup var static2)))))
-		     ;;;;;;;;;;; \VEEEEEEERY DIRTY HACKS
+		     ;;;;;;;;;;; \dirty hack
 		     (whistle? val (lookup var static2))))
 	      static1)))
+;; *) it is dirty as it's designed to work with evaluator from kln.kln only.
+;; could we get such a mechanism more general? annotations in the code are not
+;; very romantic, but just as offline pevals allow to require dynamization of
+;; given expression, we could do the opposite
 
 (define (look-for-whistle call)
   "is this call similar to anything we saw before? of so, bring this memory..."
