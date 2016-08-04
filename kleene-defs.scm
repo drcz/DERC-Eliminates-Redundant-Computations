@@ -17,7 +17,10 @@
     (if val (cdr val) #f)))
 
 (define (update sym val env)
-  `([,sym . ,val] . ,(alist-delete sym env)))
+#;  `([,sym . ,val] . ,(alist-delete sym env))
+  (cond ((null? env) '())
+	((equal? sym (caar env)) `([,sym . ,val] . ,(cdr env)))
+	(else (cons (car env) (update sym val (cdr env))))))
 
 (define (member? x xs) (if (member x xs) #t #f)) ;; :D
 

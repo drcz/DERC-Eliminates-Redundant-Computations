@@ -1,3 +1,7 @@
+#!/usr/bin/guile \
+--no-auto-compile -s
+!#
+
 (use-modules (ice-9 nice-9) ; the real magic.
 	     (ice-9 pretty-print))
 
@@ -59,6 +63,13 @@
 	[(cond-form? expr)
 	 (pevaluate (cond->ifs expr) penv prog)]
 	[(primitive-application? expr)
+#;	 (begin (pretty-print `(pprm ,(operator expr)
+				     ,(map (lambda (x) (pevaluate x penv prog)) (operands expr))
+				     ,expr))
+		(pretty-print `(penv= ,penv res= ,(peval-primitive (operator expr)
+						       (map (lambda (x) (pevaluate x penv prog)) (operands expr))
+						       expr)))
+		(newline))
 	 (peval-primitive (operator expr)
 			  (map (lambda (x) (pevaluate x penv prog)) (operands expr))
 			  expr)]
@@ -112,7 +123,7 @@
 
 ;; now the darkest, and most mystical part of pevaluator -- residualizing calls:
 (define (peval-function fname rands prog expr)
-;  (pretty-print `(pvl-fn ,fname ,rands))
+;(pretty-print `(pvl-fn ,fname ,rands))
   (let* ([def (assoc fname prog)]
 	 [varlist (definition-varlist def)]
 	 [body (definition-body def)])
@@ -122,13 +133,15 @@
 					  pseudo-env)]
 	       [penv (map (lambda ((var . expr)) `(,var . ,(static->value expr)))
 			  static)])
-	  (residualize-call fname penv dynamic prog))
+	  (if (null? dynamic) ;; a static call, always inline! but HERE?!
+	      (pevaluate body penv prog)
+	      (residualize-call fname penv dynamic prog)))
 	(error `(wrong number of arguments to ,fname in ,expr)))))
 
 
 (define (residualize-call fname penv dynamic prog)
   
-  (define (generalize penv1 penv2)
+  (define (generalize penv1 penv2)    
     "find new penv on which both given match (``a most specific generalization'')"
     [assert (every (lambda (x) (member? x (map car penv2))) (map car penv1))]
     (filter-map (lambda ((var . val))
@@ -137,9 +150,9 @@
 		penv1))
   
   (define ((is? x) y) (equal? x y)) ;; told ya, it's magic.
-  
-;[pretty-print `(r-c ,fname ,penv try?= ,(try-to-recall fname penv))]
-  (match (try-to-recall fname penv)    
+
+;  (pretty-print `(RESID-CALL ,fname ,penv ,dynamic)) 
+  (match (try-to-recall fname penv)
     ['nothing-seen-so-far
      (residualize-new-call fname penv dynamic prog)]
     [(((? (is? fname)) (? (is? penv))) resid-name resid-args resid-body)
@@ -151,6 +164,7 @@
 				     (and (not (member? var new-static-vars))
 					  `(,var . ,(value->static val))))
 				   penv)]
+;	    (pretty-print `(call (,fname . ,penv) dynamized= ,dynamized))
 	    [new-dynamic (append dynamized dynamic)])
        ;; todo: should we forget previous one and replace all calls in *mem*?!
        ;; -> not for now, I don't care it sometimes unfolds loop's first step.
@@ -187,6 +201,12 @@
 			  penv
 			  dynamic
 			  prog)
+#;    (begin
+      (pretty-print (get-residual-program))
+      (display "and here's the inlined, cleaned up version:")
+      (newline))
+
+;    (get-residual-program)
     (remove-dead-code
      (inline-linear-calls
       (get-residual-program)))))

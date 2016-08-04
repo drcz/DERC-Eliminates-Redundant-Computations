@@ -1,6 +1,7 @@
 [
   (test (names vals) (eval '((^ (x) (* x x)) (+ 2 y)) names vals ())) ;; !
-
+;  (test (names vals) (eval '(f x) names vals '([f . (^ (x) (* x x))])))
+ 
   (member? (x xs)
 	   (cond ((= xs ()) ())
 		 ((= (car xs) x) T)

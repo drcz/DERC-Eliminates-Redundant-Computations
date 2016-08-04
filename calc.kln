@@ -1,0 +1,22 @@
+[
+(eval (expr names vals)
+      (cond [(num? expr) expr]
+	    [(atom? expr) (lookup expr names vals)]
+	    [T (apply (car expr) (evlis (cdr expr) names vals))]))
+
+(evlis (exprs names vals)
+       (if (= exprs ())
+	   ()
+	   (cons (eval (car exprs) names vals)
+		 (evlis (cdr exprs) names vals))))
+
+(apply (rator rands)
+       (cond [(= rator '+) (+ (car rands) (car (cdr rands)))]
+	     [(= rator '*) (* (car rands) (car (cdr rands)))]
+	     [T 'error!]))
+
+(lookup (sym names vals)
+	(cond ((= names ()) ())
+	      ((= (car names) sym) (car vals))
+	      (T (lookup sym (cdr names) (cdr vals)))))
+]
