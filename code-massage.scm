@@ -114,3 +114,70 @@
 	 prog)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; novum, from Panicz 'nice-9' Godek himself!
+
+(use-modules #;(srfi srfi-1) 
+	     #;(ice-9 nice-9)
+	     #;(ice-9 pretty-print)
+	     (ice-9 regex))
+
+(define (string-match-all pattern string)
+  (let loop ((n 0)
+	     (all '()))
+    (let ((m (string-match pattern string n)))
+      (if m
+	  (loop (match:end m) (cons m all))
+	  (reverse all)))))
+
+(define (string-matches pattern string)
+  (and-let* ((matches (string-match-all pattern string))
+	     ((not (null? matches)))
+	     (result (append-map
+		      (lambda (ms)
+			(let ((count (match:count ms)))
+			  (filter-map (lambda (n) (match:substring ms n))
+				      (if (= count 1) '(0) (iota (1- count) 1)))))
+		      matches))
+	     ((not (null? result))))
+    result))
+
+(define (symbol-match pattern symbol)
+  (and-let* ((matches (string-matches pattern (symbol->string symbol))))
+    (map string->symbol matches)))
+
+(define (number-symbol symbol number)
+  (string->symbol (string-append (symbol->string symbol) (number->string number))))
+
+(define (reduce-symbol-number symbol dictionary prefix)
+  (cond ((assoc-ref dictionary symbol)
+	 => (lambda (symbol*)
+	      (values symbol* dictionary)))
+	(else
+	 (let loop ((n 1))
+	   (let ((candidate (number-symbol prefix n) #;(if (= n 1)
+				prefix
+				(number-symbol prefix n))))
+	     (if (any (lambda ((k . v)) (eq? v candidate)) dictionary)
+		 (loop (+ n 1))
+		 (values
+		  candidate
+		  `((,symbol . ,candidate) . ,dictionary))))))))
+
+(define* (deobfuscate x #:optional (taken '()))
+  (match x
+    ((head . tail)
+     (let* ((head* taken* (deobfuscate head taken))
+	    (tail* taken** (deobfuscate tail taken*)))
+       (values
+	`(,head* . ,tail*)
+	taken**)))
+    ((? symbol?)
+     (cond ((symbol-match "^(.*[^0-9])[0-9]+$" x)
+	    => (lambda ((prefix))
+		 (reduce-symbol-number x taken prefix)))
+	   (else
+	    (values x taken))))
+    (_
+     (values
+      x
+      taken))))

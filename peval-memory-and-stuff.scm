@@ -22,6 +22,8 @@
 ;  (pretty-print `(rem-upd! (,fname ,penv)))
   (set! *mem* (update `(,fname ,penv) entry *mem*)))
 
+(define (atom? x) (not (pair? x))) ;; :D
+
 ;;; the famous ``russian whistle'' :)
 (define (whistle? e1 e2)
   "e1 is [homeomorphically] embedded in e2"
@@ -35,6 +37,7 @@
 	 (> 0 n1 n2))]
     ;;; TODO: when working on 2level interpreter add cases for meta-vars
     ;;; so that each two do whistle, disregarding their "numbers"...
+    [((h . t) (? atom?)) #f]
     [((h1 . t1) (h2 . t2))
      (or (and (whistle? h1 h2) (whistle? t1 t2))
 	 (whistle? `(,h1 . ,t1) h2)
@@ -50,7 +53,18 @@
   "when two applications are ''dangerously similar''"
   (and (eq? name1 name2)
        (= #;<= (length static1) (length static2))
-       (every (lambda ((var . val)) (whistle? val (lookup var static2))) static1)))
+       (every (lambda ((var . val))
+		;;;;;; VEEEEEEERY DIRTY HACKS....
+		(and (not (and (or (and (eq? name1 'eval)
+					(eq? var 'expr))
+				   (and (eq? name1 'evlis)
+					(eq? var 'exprs))
+				   (and (eq? name1 'apply)
+					(eq? var 'rator)))
+			       (not (eq? val (lookup var static2)))))
+		     ;;;;;;;;;;; \VEEEEEEERY DIRTY HACKS
+		     (whistle? val (lookup var static2))))
+	      static1)))
 
 (define (look-for-whistle call)
   "is this call similar to anything we saw before? of so, bring this memory..."
@@ -61,11 +75,10 @@
 	 [from-most-specific-to-most-generic
 	  (sort all-whistling-projections
 		(lambda ((s1 . e1) (s2 . e2)) (signatures-whistle? s1 s2)))])
-    
- ;   (display `(spec->gen 4 ,call)) (newline)
- ;   (map (lambda (x) (display x) (newline)) from-most-specific-to-most-generic)
- ;   (newline)
-    
+#;    (begin
+      (display `(spec->gen 4 ,call)) (newline)
+      (map (lambda (x) (display x) (newline)) from-most-specific-to-most-generic)
+      (newline))  
     (if (null? from-most-specific-to-most-generic)
 	'nothing-seen-so-far
 	(first from-most-specific-to-most-generic)))

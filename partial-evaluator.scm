@@ -205,11 +205,10 @@
       (pretty-print (get-residual-program))
       (display "and here's the inlined, cleaned up version:")
       (newline))
-
-;    (get-residual-program)
-    (remove-dead-code
-     (inline-linear-calls
-      (get-residual-program)))))
+    (deobfuscate ;; a bonus!
+     (remove-dead-code
+      (inline-linear-calls
+       (get-residual-program))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; "main"
