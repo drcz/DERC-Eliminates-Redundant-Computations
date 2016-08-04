@@ -4,7 +4,10 @@ some experiments on [first order lisp] partial evaluator with guaranteed termina
 the ultimate goal was to use 2-level interpreter for drcz2 language (lexically scoped minimal lisp)
 in order to compile its programs with some twists into form digestable by i.a. drcz0->DRC compiler or something something.
 
-try ./test-apd.sh
+this will most probably not work :)
+
+usage -- look into test-apd.sh (or just run it).
+
 
 kleene-defs.scm describes the subject language.
 
